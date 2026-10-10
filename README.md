@@ -1,20 +1,26 @@
 # CLPS Lunar Mission Browser
 
+**English** | [ภาษาไทย](README.th.md)
+
 A 3D lunar browser for **Artemis III candidate landing regions** and **CLPS** (Commercial Lunar Payload Services) missions, plus a FastAPI backend for physics analysis (solar power, battery survival, ENU vectors, slope/TRI).
+
+The web UI is available in **English and Thai**: use the `EN | ไทย` switch in the top-right corner (your choice is remembered), or open the page with `?lang=th` / `?lang=en`.
 
 ```
 clps-lunar-browser/
 ├── frontend/
 │   ├── index.html        # Layout: top KPI bar, site list, 3D viewer, sidebar + analysis dashboard
 │   ├── style.css         # Dark space / mission-control theme
-│   ├── app.js            # CesiumJS Moon globe, 3D pins, click -> sidebar, API calls, chart
+│   ├── app.js            # CesiumJS Moon globe, 3D pins, click -> sidebar, API calls, chart, EN/TH language switch
 │   ├── textures/moon_lroc_color_4k.jpg  # NASA LROC colour mosaic (equirectangular)
 │   └── sites_data.json   # 9 Artemis III regions (+1 legacy) and CLPS landings (IM-1, IM-2, Blue Ghost M1)
 ├── backend/
 │   ├── main.py           # FastAPI REST server (CORS enabled)
 │   ├── physics.py        # Solar power, battery survival, ME->ENU, slope/TRI
 │   └── requirements.txt
-└── README.md
+├── render.yaml           # Render Blueprint for public deployment
+├── README.md
+└── README.th.md          # Thai README
 ```
 
 ## Requirements
