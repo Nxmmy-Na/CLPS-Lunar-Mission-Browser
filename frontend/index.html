@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLPS Lunar Mission Browser</title>
+
+  <!-- CesiumJS from CDN (Ellipsoid.MOON support requires >= 1.116) -->
+  <script src="https://cdn.jsdelivr.net/npm/cesium@1.122.0/Build/Cesium/Cesium.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.122.0/Build/Cesium/Widgets/widgets.css" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" />
+  <link rel="stylesheet" href="style.css?v=3" />
+</head>
+<body>
+  <!-- ===== Top dashboard bar ===== -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">◐</span>
+      <div>
+        <h1>CLPS Lunar Mission Browser</h1>
+        <p class="subtitle">Artemis III candidate regions · Commercial Lunar Payload Services</p>
+      </div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><span class="kpi-value" id="kpi-total">–</span><span class="kpi-label">Sites</span></div>
+      <div class="kpi"><span class="kpi-value accent-artemis" id="kpi-artemis">–</span><span class="kpi-label">Artemis III</span></div>
+      <div class="kpi"><span class="kpi-value accent-clps" id="kpi-clps">–</span><span class="kpi-label">CLPS</span></div>
+      <div class="kpi">
+        <span class="kpi-value"><span class="status-dot" id="api-dot"></span><span id="api-status">checking</span></span>
+        <span class="kpi-label">Physics API</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ===== Left: site list / filters ===== -->
+    <nav class="sitelist" aria-label="Landing sites">
+      <div class="panel-head">
+        <h2>Landing sites</h2>
+        <div class="filters" role="group" aria-label="Filter sites">
+          <button class="chip active" data-filter="all">All</button>
+          <button class="chip" data-filter="artemis_iii">Artemis III</button>
+          <button class="chip" data-filter="clps">CLPS</button>
+        </div>
+      </div>
+      <ul id="site-list"></ul>
+      <button class="btn-ghost" id="btn-home">⌂ South pole view</button>
+    </nav>
+
+    <!-- ===== Centre: 3D Moon viewer ===== -->
+    <section class="viewer-wrap">
+      <div id="cesiumContainer"></div>
+      <div class="legend">
+        <span><i class="swatch artemis"></i>Artemis III region</span>
+        <span><i class="swatch clps"></i>CLPS landing</span>
+      </div>
+      <div class="viewer-note" id="viewer-note"></div>
+    </section>
+
+    <!-- ===== Right: details sidebar + analysis dashboard ===== -->
+    <aside class="sidebar" id="sidebar" aria-hidden="true">
+      <div class="panel-head">
+        <span class="badge" id="d-category">–</span>
+        <button class="btn-icon" id="btn-close" aria-label="Close details">✕</button>
+      </div>
+
+      <h2 id="d-name">Select a site</h2>
+      <p class="muted" id="d-description"></p>
+
+      <dl class="facts">
+        <div><dt>Latitude</dt><dd class="mono" id="d-lat">–</dd></div>
+        <div><dt>Longitude</dt><dd class="mono" id="d-lon">–</dd></div>
+        <div class="span2"><dt>Provider</dt><dd id="d-provider">–</dd></div>
+        <div class="span2"><dt>Mission</dt><dd id="d-mission">–</dd></div>
+        <div class="span2"><dt>Status</dt><dd id="d-status">–</dd></div>
+      </dl>
+
+      <div class="meters">
+        <div class="meter">
+          <div class="meter-row"><span>☀ Sunlight</span><span class="mono" id="d-sun">–</span></div>
+          <div class="bar"><div class="fill sun" id="d-sun-bar"></div></div>
+        </div>
+        <div class="meter">
+          <div class="meter-row"><span>📡 Direct-to-Earth</span><span class="mono" id="d-dte">–</span></div>
+          <div class="bar"><div class="fill dte" id="d-dte-bar"></div></div>
+        </div>
+      </div>
+
+      <!-- Physics analysis controls -->
+      <section class="analysis">
+        <h3>Power &amp; survival analysis</h3>
+
+        <label class="ctl">
+          <span>Sun longitude offset <b class="mono" id="v-sunoff">0°</b></span>
+          <input type="range" id="in-sunoff" min="-180" max="180" step="5" value="0" />
+        </label>
+        <label class="ctl">
+          <span>Panel area <b class="mono" id="v-area">2.0 m²</b></span>
+          <input type="range" id="in-area" min="0.5" max="20" step="0.5" value="2" />
+        </label>
+        <label class="ctl">
+          <span>Panel efficiency <b class="mono" id="v-eff">28%</b></span>
+          <input type="range" id="in-eff" min="10" max="40" step="1" value="28" />
+        </label>
+        <label class="ctl">
+          <span>Terrain visibility <b class="mono" id="v-vis">100%</b></span>
+          <input type="range" id="in-vis" min="0" max="100" step="5" value="100" />
+        </label>
+        <label class="ctl">
+          <span>Battery capacity <b class="mono" id="v-batt">2000 Wh</b></span>
+          <input type="range" id="in-batt" min="200" max="20000" step="100" value="2000" />
+        </label>
+        <div class="ctl-row">
+          <label class="ctl small"><span>Base load (W)</span><input type="number" id="in-base" min="0" value="40" /></label>
+          <label class="ctl small"><span>Heater (W)</span><input type="number" id="in-heater" min="0" value="60" /></label>
+        </div>
+        <label class="ctl check">
+          <input type="checkbox" id="in-tracking" checked /> Sun-tracking vertical panel
+        </label>
+
+        <button class="btn-primary" id="btn-analyze">Run analysis</button>
+        <p class="error" id="analysis-error" role="alert"></p>
+
+        <div class="results" id="results" hidden>
+          <div class="cards">
+            <div class="card"><span class="card-label">Solar power</span><span class="card-value mono" id="r-power">–</span></div>
+            <div class="card"><span class="card-label">Net power</span><span class="card-value mono" id="r-net">–</span></div>
+            <div class="card"><span class="card-label">Sun elevation</span><span class="card-value mono" id="r-elev">–</span></div>
+            <div class="card"><span class="card-label">Battery life</span><span class="card-value mono" id="r-batt">–</span></div>
+          </div>
+          <div class="verdict" id="r-verdict"></div>
+          <div class="chart-head">
+            <span>Power over one lunar day (flat horizon)</span>
+            <span class="mono muted" id="r-mean"></span>
+          </div>
+          <canvas id="power-chart" height="140"></canvas>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="app.js?v=3"></script>
+</body>
+</html>
