@@ -209,3 +209,18 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   .sidebar.open { width: 100%; border-left: none; border-top: 1px solid var(--border); }
   .sitelist { order: 3; border-right: none; border-top: 1px solid var(--border); padding: 14px 16px; }
 }
+
+/* ---------- Language switch ---------- */
+html[lang="th"] { --font: "Inter", "Noto Sans Thai", system-ui, sans-serif; }
+html[lang="th"] .kpi-label { text-transform: none; letter-spacing: 0; }
+.lang-switch {
+  display: flex; align-self: center;
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+}
+.lang-btn {
+  padding: 8px 12px; border: 0; background: var(--panel); color: var(--muted);
+  font: 600 12px "Inter", "Noto Sans Thai", sans-serif; cursor: pointer;
+}
+.lang-btn + .lang-btn { border-left: 1px solid var(--border); }
+.lang-btn:hover { color: var(--text); }
+.lang-btn.active { background: var(--accent); color: #05070d; }

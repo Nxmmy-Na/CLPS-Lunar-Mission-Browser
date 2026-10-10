@@ -35,10 +35,141 @@ const state = {
   sites: [],            // all sites from sites_data.json
   selected: null,       // currently selected site object
   filter: "all",        // 'all' | 'artemis_iii' | 'clps'
+  noteKey: "",          // i18n key of the viewer note, re-translated on language change
+  apiKey: "api.checking",
+  lastResult: null,     // last analysis result, re-rendered on language change
 };
 
 // Small DOM helper
 const $ = (id) => document.getElementById(id);
+
+// ---------------------------------------------------------------------
+// 0. Translations (English / Thai)
+// ---------------------------------------------------------------------
+// Static text in index.html is tagged with data-i18n="key" (text) or
+// data-i18n-aria="key" (aria-label). Dynamic text goes through t().
+const I18N = {
+  en: {
+    "title": "CLPS Lunar Mission Browser",
+    "subtitle": "Artemis III candidate regions · Commercial Lunar Payload Services",
+    "kpi.sites": "Sites",
+    "kpi.api": "Physics API",
+    "api.checking": "checking",
+    "api.online": "online",
+    "api.offline": "offline",
+    "sites.heading": "Landing sites",
+    "filter.aria": "Filter sites",
+    "filter.all": "All",
+    "btn.home": "⌂ South pole view",
+    "btn.close": "Close details",
+    "legend.artemis": "Artemis III region",
+    "legend.clps": "CLPS landing",
+    "detail.select": "Select a site",
+    "detail.lat": "Latitude",
+    "detail.lon": "Longitude",
+    "detail.provider": "Provider",
+    "detail.mission": "Mission",
+    "detail.status": "Status",
+    "detail.sun": "☀ Sunlight",
+    "detail.dte": "📡 Direct-to-Earth",
+    "an.heading": "Power & survival analysis",
+    "an.sunoff": "Sun longitude offset",
+    "an.area": "Panel area",
+    "an.eff": "Panel efficiency",
+    "an.vis": "Terrain visibility",
+    "an.batt": "Battery capacity",
+    "an.base": "Base load (W)",
+    "an.heater": "Heater (W)",
+    "an.tracking": "Sun-tracking vertical panel",
+    "an.run": "Run analysis",
+    "an.running": "Calculating…",
+    "an.error": "Analysis failed: {msg}. Is the backend running?",
+    "res.power": "Solar power",
+    "res.net": "Net power",
+    "res.elev": "Sun elevation",
+    "res.batt": "Battery life",
+    "res.chart": "Power over one lunar day (flat horizon)",
+    "res.mean": "mean {w} W",
+    "res.survives": "✔ Survives {h} h of darkness (margin +{m} h).",
+    "res.fails": "✖ Battery runs out {m} h before sunrise. Need ≥ {wh} Wh.",
+    "note.texture": "LROC texture mode. Add a Cesium ion token (?ion=TOKEN) for 3D lunar terrain.",
+    "note.terrainFail": "Could not load Cesium Moon Terrain - showing textured globe.",
+    "note.sitesFail": "Could not load sites_data.json - serve the frontend over HTTP (see README).",
+    "dir.N": "N", "dir.S": "S", "dir.E": "E", "dir.W": "W",
+  },
+  th: {
+    "title": "CLPS Lunar Mission Browser",
+    "subtitle": "พื้นที่ลงจอดที่เป็นตัวเลือกของ Artemis III · โครงการขนส่งสัมภาระสู่ดวงจันทร์เชิงพาณิชย์ (CLPS)",
+    "kpi.sites": "จุดทั้งหมด",
+    "kpi.api": "API ฟิสิกส์",
+    "api.checking": "กำลังตรวจสอบ",
+    "api.online": "ออนไลน์",
+    "api.offline": "ออฟไลน์",
+    "sites.heading": "จุดลงจอด",
+    "filter.aria": "กรองจุดลงจอด",
+    "filter.all": "ทั้งหมด",
+    "btn.home": "⌂ มุมมองขั้วใต้",
+    "btn.close": "ปิดรายละเอียด",
+    "legend.artemis": "พื้นที่ Artemis III",
+    "legend.clps": "จุดลงจอด CLPS",
+    "detail.select": "เลือกจุดลงจอด",
+    "detail.lat": "ละติจูด",
+    "detail.lon": "ลองจิจูด",
+    "detail.provider": "ผู้ให้บริการ",
+    "detail.mission": "ภารกิจ",
+    "detail.status": "สถานะ",
+    "detail.sun": "☀ แสงอาทิตย์",
+    "detail.dte": "📡 สื่อสารตรงกับโลก",
+    "an.heading": "วิเคราะห์พลังงานและการอยู่รอด",
+    "an.sunoff": "ระยะลองจิจูดของดวงอาทิตย์",
+    "an.area": "พื้นที่แผงโซลาร์",
+    "an.eff": "ประสิทธิภาพแผง",
+    "an.vis": "การมองเห็นจากภูมิประเทศ",
+    "an.batt": "ความจุแบตเตอรี่",
+    "an.base": "โหลดพื้นฐาน (W)",
+    "an.heater": "ฮีตเตอร์ (W)",
+    "an.tracking": "แผงแนวตั้งหมุนตามดวงอาทิตย์",
+    "an.run": "เริ่มวิเคราะห์",
+    "an.running": "กำลังคำนวณ…",
+    "an.error": "วิเคราะห์ไม่สำเร็จ: {msg} เซิร์ฟเวอร์ backend ทำงานอยู่หรือไม่?",
+    "res.power": "พลังงานแสงอาทิตย์",
+    "res.net": "พลังงานสุทธิ",
+    "res.elev": "มุมเงยดวงอาทิตย์",
+    "res.batt": "อายุแบตเตอรี่",
+    "res.chart": "พลังงานตลอดหนึ่งวันบนดวงจันทร์ (ขอบฟ้าราบ)",
+    "res.mean": "เฉลี่ย {w} W",
+    "res.survives": "✔ อยู่รอดช่วงมืด {h} ชม. ได้ (เหลือเผื่อ +{m} ชม.)",
+    "res.fails": "✖ แบตเตอรี่หมดก่อนดวงอาทิตย์ขึ้น {m} ชม. ต้องการอย่างน้อย {wh} Wh",
+    "note.texture": "โหมดพื้นผิว LROC เพิ่มโทเคน Cesium ion (?ion=TOKEN) เพื่อดูภูมิประเทศ 3 มิติ",
+    "note.terrainFail": "โหลด Cesium Moon Terrain ไม่ได้ จึงแสดงลูกโลกพร้อมพื้นผิวแทน",
+    "note.sitesFail": "โหลด sites_data.json ไม่ได้ ต้องเปิดหน้าเว็บผ่าน HTTP (ดู README)",
+    "dir.N": "เหนือ", "dir.S": "ใต้", "dir.E": "ตะวันออก", "dir.W": "ตะวันตก",
+  },
+};
+
+/** Pick the starting language: ?lang= > saved choice > browser language. */
+function initialLang() {
+  const fromUrl = new URLSearchParams(location.search).get("lang");
+  if (fromUrl in I18N) return fromUrl;
+  try {
+    const saved = localStorage.getItem("lang");
+    if (saved in I18N) return saved;
+  } catch { /* storage blocked */ }
+  return navigator.language?.toLowerCase().startsWith("th") ? "th" : "en";
+}
+
+let lang = initialLang();
+
+/** Translate a key, filling {placeholders} from vars. Falls back to English. */
+function t(key, vars = {}) {
+  const text = I18N[lang][key] ?? I18N.en[key] ?? key;
+  return text.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+}
+
+/** Localised site field, e.g. description_th, falling back to the English one. */
+function siteField(site, field) {
+  return (lang !== "en" && site[`${field}_${lang}`]) || site[field] || "";
+}
 
 // ---------------------------------------------------------------------
 // 1. Cesium viewer set up for the Moon
@@ -103,8 +234,7 @@ async function addMoonImagery() {
 /** Load photorealistic Moon terrain from Cesium ion if a token is configured. */
 async function loadMoonTerrain() {
   if (!CONFIG.CESIUM_ION_TOKEN) {
-    $("viewer-note").textContent =
-      "LROC texture mode. Add a Cesium ion token (?ion=TOKEN) for 3D lunar terrain.";
+    setNote("note.texture");
     return;
   }
   try {
@@ -114,7 +244,7 @@ async function loadMoonTerrain() {
     scene.globe.show = false; // the tileset replaces the smooth globe
   } catch (err) {
     console.error("Moon terrain failed to load:", err);
-    $("viewer-note").textContent = "Could not load Cesium Moon Terrain - showing textured globe.";
+    setNote("note.terrainFail");
   }
 }
 
@@ -195,28 +325,16 @@ clickHandler.setInputAction((event) => {
   }
 }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
-function formatLat(lat) { return `${Math.abs(lat).toFixed(2)}° ${lat < 0 ? "S" : "N"}`; }
-function formatLon(lon) { return `${Math.abs(lon).toFixed(2)}° ${lon < 0 ? "W" : "E"}`; }
+// `short` keeps the compact N/S/E/W letters (used in the narrow site list).
+function dir(key, short) { return short ? key.slice(-1) : t(key); }
+function formatLat(lat, short) { return `${Math.abs(lat).toFixed(2)}° ${dir(lat < 0 ? "dir.S" : "dir.N", short)}`; }
+function formatLon(lon, short) { return `${Math.abs(lon).toFixed(2)}° ${dir(lon < 0 ? "dir.W" : "dir.E", short)}`; }
 function categoryLabel(c) { return c === "clps" ? "CLPS" : "Artemis III"; }
 
 function selectSite(site, { fly = true } = {}) {
   state.selected = site;
-
-  // Fill sidebar (textContent everywhere -> no HTML injection from data)
-  const badge = $("d-category");
-  badge.textContent = categoryLabel(site.category);
-  badge.className = `badge ${site.category}`;
-  $("d-name").textContent = site.name;
-  $("d-description").textContent = site.description || "";
-  $("d-lat").textContent = formatLat(site.lat);
-  $("d-lon").textContent = formatLon(site.lon);
-  $("d-provider").textContent = site.provider;
-  $("d-mission").textContent = site.mission;
-  $("d-status").textContent = site.status;
-  $("d-sun").textContent = `${site.sunlight_pct}%`;
-  $("d-dte").textContent = `${site.dte_pct}%`;
-  $("d-sun-bar").style.width = `${site.sunlight_pct}%`;
-  $("d-dte-bar").style.width = `${site.dte_pct}%`;
+  state.lastResult = null;
+  renderSiteDetails(site);
 
   // Reset previous analysis
   $("results").hidden = true;
@@ -234,6 +352,24 @@ function selectSite(site, { fly = true } = {}) {
       duration: 1.5,
     });
   }
+}
+
+function renderSiteDetails(site) {
+  // Fill sidebar (textContent everywhere -> no HTML injection from data)
+  const badge = $("d-category");
+  badge.textContent = categoryLabel(site.category);
+  badge.className = `badge ${site.category}`;
+  $("d-name").textContent = site.name;
+  $("d-description").textContent = siteField(site, "description");
+  $("d-lat").textContent = formatLat(site.lat);
+  $("d-lon").textContent = formatLon(site.lon);
+  $("d-provider").textContent = site.provider;
+  $("d-mission").textContent = site.mission;
+  $("d-status").textContent = siteField(site, "status");
+  $("d-sun").textContent = `${site.sunlight_pct}%`;
+  $("d-dte").textContent = `${site.dte_pct}%`;
+  $("d-sun-bar").style.width = `${site.sunlight_pct}%`;
+  $("d-dte-bar").style.width = `${site.dte_pct}%`;
 }
 
 function closeSidebar() {
@@ -263,7 +399,7 @@ function renderSiteList() {
     name.textContent = site.name;
     const coords = document.createElement("div");
     coords.className = "li-coords";
-    coords.textContent = `${formatLat(site.lat)}, ${formatLon(site.lon)}`;
+    coords.textContent = `${formatLat(site.lat, true)}, ${formatLon(site.lon, true)}`;
     text.append(name, coords);
     li.append(dot, text);
 
@@ -284,11 +420,12 @@ async function checkApi() {
     const res = await fetch(`${CONFIG.API_BASE}/api/health`);
     if (!res.ok) throw new Error();
     dot.className = "status-dot ok";
-    $("api-status").textContent = "online";
+    state.apiKey = "api.online";
   } catch {
     dot.className = "status-dot down";
-    $("api-status").textContent = "offline";
+    state.apiKey = "api.offline";
   }
+  $("api-status").textContent = t(state.apiKey);
 }
 
 // ---------------------------------------------------------------------
@@ -331,7 +468,7 @@ async function runAnalysis() {
 
   const btn = $("btn-analyze");
   btn.disabled = true;
-  btn.textContent = "Calculating…";
+  btn.textContent = t("an.running");
   $("analysis-error").textContent = "";
 
   try {
@@ -342,13 +479,15 @@ async function runAnalysis() {
     }
     const result = await res.json();
     // Ignore stale responses if the user switched site meanwhile
-    if (state.selected?.id === site.id) renderResults(result);
+    if (state.selected?.id === site.id) {
+      state.lastResult = result;
+      renderResults(result);
+    }
   } catch (err) {
-    $("analysis-error").textContent =
-      `Analysis failed: ${err.message}. Is the backend running on ${CONFIG.API_BASE}?`;
+    $("analysis-error").textContent = t("an.error", { msg: err.message });
   } finally {
     btn.disabled = false;
-    btn.textContent = "Run analysis";
+    btn.textContent = t("an.run");
   }
 }
 
@@ -361,16 +500,19 @@ function renderResults(r) {
   const verdict = $("r-verdict");
   if (r.battery.survives) {
     verdict.className = "verdict ok";
-    verdict.textContent =
-      `✔ Survives ${r.battery.darkness_hours} h of darkness (margin +${r.battery.margin_hours.toFixed(1)} h).`;
+    verdict.textContent = t("res.survives", {
+      h: r.battery.darkness_hours,
+      m: r.battery.margin_hours.toFixed(1),
+    });
   } else {
     verdict.className = "verdict bad";
-    verdict.textContent =
-      `✖ Battery runs out ${Math.abs(r.battery.margin_hours).toFixed(1)} h before sunrise. ` +
-      `Need ≥ ${Math.ceil(r.battery.required_capacity_wh)} Wh.`;
+    verdict.textContent = t("res.fails", {
+      m: Math.abs(r.battery.margin_hours).toFixed(1),
+      wh: Math.ceil(r.battery.required_capacity_wh),
+    });
   }
 
-  $("r-mean").textContent = `mean ${r.power.flat_horizon_mean_w.toFixed(0)} W`;
+  $("r-mean").textContent = t("res.mean", { w: r.power.flat_horizon_mean_w.toFixed(0) });
   $("results").hidden = false;
   drawPowerChart(r.profile);
 }
@@ -424,7 +566,49 @@ function drawPowerChart(profile) {
 }
 
 // ---------------------------------------------------------------------
-// 6. Wire up UI and boot
+// 6. Language switching
+// ---------------------------------------------------------------------
+function setNote(key) {
+  state.noteKey = key;
+  $("viewer-note").textContent = t(key);
+}
+
+/** Apply the current language to static markup and re-render dynamic parts. */
+function applyLanguage() {
+  document.documentElement.lang = lang;
+  document.title = t("title");
+  document.querySelectorAll("[data-i18n]").forEach((el) => (el.textContent = t(el.dataset.i18n)));
+  document.querySelectorAll("[data-i18n-aria]").forEach((el) =>
+    el.setAttribute("aria-label", t(el.dataset.i18nAria))
+  );
+  document.querySelectorAll(".lang-btn").forEach((b) => {
+    const active = b.dataset.lang === lang;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-pressed", String(active));
+  });
+
+  $("api-status").textContent = t(state.apiKey);
+  if (state.noteKey) $("viewer-note").textContent = t(state.noteKey);
+  if (!$("btn-analyze").disabled) $("btn-analyze").textContent = t("an.run");
+  if (state.selected) renderSiteDetails(state.selected);
+  else $("d-name").textContent = t("detail.select");
+  if (state.lastResult && !$("results").hidden) renderResults(state.lastResult);
+  renderSiteList();
+}
+
+function setLanguage(next) {
+  if (!(next in I18N) || next === lang) return;
+  lang = next;
+  try { localStorage.setItem("lang", lang); } catch { /* storage blocked */ }
+  applyLanguage();
+}
+
+document.querySelectorAll(".lang-btn").forEach((b) =>
+  b.addEventListener("click", () => setLanguage(b.dataset.lang))
+);
+
+// ---------------------------------------------------------------------
+// 7. Wire up UI and boot
 // ---------------------------------------------------------------------
 $("btn-close").addEventListener("click", closeSidebar);
 $("btn-home").addEventListener("click", flyHome);
@@ -440,6 +624,7 @@ document.querySelectorAll(".chip").forEach((chip) => {
 });
 
 (async function init() {
+  applyLanguage();
   flyHome();
   addMoonImagery();
   loadMoonTerrain();
@@ -451,7 +636,6 @@ document.querySelectorAll(".chip").forEach((chip) => {
     renderKpis();
   } catch (err) {
     console.error(err);
-    $("viewer-note").textContent =
-      "Could not load sites_data.json - serve the frontend over HTTP (see README).";
+    setNote("note.sitesFail");
   }
 })();

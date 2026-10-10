@@ -12,7 +12,9 @@
     "fields": {
       "sunlight_pct": "Average fraction of time the site is sunlit (%)",
       "dte_pct": "Average fraction of time Earth is visible for Direct-To-Earth communication (%)",
-      "max_darkness_hours": "Longest continuous period without sunlight (hours) - drives battery sizing"
+      "max_darkness_hours": "Longest continuous period without sunlight (hours) - drives battery sizing",
+      "status_th": "Thai translation of status (optional; frontend falls back to status)",
+      "description_th": "Thai translation of description (optional; frontend falls back to description)"
     }
   },
   "sites": [
@@ -25,10 +27,12 @@
       "provider": "NASA Artemis III (HLS: SpaceX Starship)",
       "mission": "Artemis III",
       "status": "Candidate region (2024)",
+      "status_th": "พื้นที่ผู้สมัคร (2024)",
       "sunlight_pct": 72,
       "dte_pct": 64,
       "max_darkness_hours": 110,
-      "description": "Elevated peak near Cabeus B crater on the 0 to -60 deg longitude side of the south pole; access to nearby permanently shadowed regions."
+      "description": "Elevated peak near Cabeus B crater on the 0 to -60 deg longitude side of the south pole; access to nearby permanently shadowed regions.",
+      "description_th": "ยอดเขาสูงใกล้หลุมอุกกาบาต Cabeus B ฝั่งลองจิจูด 0 ถึง -60 องศาของขั้วใต้ เข้าถึงบริเวณที่อยู่ในเงามืดถาวรใกล้เคียงได้"
     },
     {
       "id": "haworth",
@@ -39,10 +43,12 @@
       "provider": "NASA Artemis III (HLS: SpaceX Starship)",
       "mission": "Artemis III",
       "status": "Candidate region (2024)",
+      "status_th": "พื้นที่ผู้สมัคร (2024)",
       "sunlight_pct": 70,
       "dte_pct": 58,
       "max_darkness_hours": 120,
-      "description": "Rim terrain of Haworth crater, adjacent to one of the largest permanently shadowed regions near the south pole."
+      "description": "Rim terrain of Haworth crater, adjacent to one of the largest permanently shadowed regions near the south pole.",
+      "description_th": "ขอบหลุมอุกกาบาต Haworth ติดกับบริเวณเงามืดถาวรที่ใหญ่ที่สุดแห่งหนึ่งใกล้ขั้วใต้"
     },
     {
       "id": "malapert-massif",
@@ -53,10 +59,12 @@
       "provider": "NASA Artemis III (HLS: SpaceX Starship)",
       "mission": "Artemis III",
       "status": "Candidate region (2024)",
+      "status_th": "พื้นที่ผู้สมัคร (2024)",
       "sunlight_pct": 78,
       "dte_pct": 92,
       "max_darkness_hours": 90,
-      "description": "Large mountain massif facing the Earth-side; excellent Earth visibility makes it attractive for direct-to-Earth communications."
+      "description": "Large mountain massif facing the Earth-side; excellent Earth visibility makes it attractive for direct-to-Earth communications.",
+      "description_th": "เทือกเขาขนาดใหญ่ที่หันเข้าหาโลก มองเห็นโลกได้ดีเยี่ยม จึงเหมาะกับการสื่อสารตรงกับโลก"
     },
     {
       "id": "mons-mouton-plateau",
@@ -67,10 +75,12 @@
       "provider": "NASA Artemis III (HLS: SpaceX Starship)",
       "mission": "Artemis III",
       "status": "Candidate region (2024)",
+      "status_th": "พื้นที่ผู้สมัคร (2024)",
       "sunlight_pct": 74,
       "dte_pct": 80,
       "max_darkness_hours": 100,
-      "description": "Broad, relatively flat summit plateau of Mons Mouton; previously the planned VIPER operations area and near the IM-2 landing site."
+      "description": "Broad, relatively flat summit plateau of Mons Mouton; previously the planned VIPER operations area and near the IM-2 landing site.",
+      "description_th": "ที่ราบสูงบนยอด Mons Mouton ที่กว้างและค่อนข้างราบเรียบ เคยเป็นพื้นที่ปฏิบัติการที่วางแผนไว้ของ VIPER และอยู่ใกล้จุดลงจอดของ IM-2"
     },
     {
       "id": "mons-mouton",
@@ -81,10 +91,12 @@
       "provider": "NASA Artemis III (HLS: SpaceX Starship)",
       "mission": "Artemis III",
       "status": "Candidate region (2024)",
+      "status_th": "พื้นที่ผู้สมัคร (2024)",
       "sunlight_pct": 69,
       "dte_pct": 76,
       "max_darkness_hours": 115,
-      "description": "Flanks of Mons Mouton (formerly Leibnitz Beta), one of the tallest mountains in the lunar south polar region."
+      "description": "Flanks of Mons Mouton (formerly Leibnitz Beta), one of the tallest mountains in the lunar south polar region.",
+      "description_th": "ไหล่เขา Mons Mouton (เดิมชื่อ Leibnitz Beta) หนึ่งในภูเขาที่สูงที่สุดในบริเวณขั้วใต้ของดวงจันทร์"
     },
     {
       "id": "nobile-rim-1",
@@ -95,10 +107,12 @@
       "provider": "NASA Artemis III (HLS: SpaceX Starship)",
       "mission": "Artemis III",
       "status": "Candidate region (2024)",
+      "status_th": "พื้นที่ผู้สมัคร (2024)",
       "sunlight_pct": 66,
       "dte_pct": 70,
       "max_darkness_hours": 130,
-      "description": "Rim segment of Nobile crater, a heavily degraded crater containing permanently shadowed terrain."
+      "description": "Rim segment of Nobile crater, a heavily degraded crater containing permanently shadowed terrain.",
+      "description_th": "ส่วนขอบของหลุมอุกกาบาต Nobile หลุมที่ผุกร่อนมากและมีพื้นที่ในเงามืดถาวร"
     },
     {
       "id": "nobile-rim-2",
@@ -109,10 +123,12 @@
       "provider": "NASA Artemis III (HLS: SpaceX Starship)",
       "mission": "Artemis III",
       "status": "Candidate region (2024)",
+      "status_th": "พื้นที่ผู้สมัคร (2024)",
       "sunlight_pct": 64,
       "dte_pct": 72,
       "max_darkness_hours": 140,
-      "description": "Second rim region of Nobile crater, between Nobile and the Mons Mouton complex."
+      "description": "Second rim region of Nobile crater, between Nobile and the Mons Mouton complex.",
+      "description_th": "บริเวณขอบที่สองของหลุมอุกกาบาต Nobile อยู่ระหว่าง Nobile กับกลุ่มเขา Mons Mouton"
     },
     {
       "id": "de-gerlache-rim-2",
@@ -123,10 +139,12 @@
       "provider": "NASA Artemis III (HLS: SpaceX Starship)",
       "mission": "Artemis III",
       "status": "Candidate region (2024)",
+      "status_th": "พื้นที่ผู้สมัคร (2024)",
       "sunlight_pct": 80,
       "dte_pct": 55,
       "max_darkness_hours": 85,
-      "description": "Rim of de Gerlache crater very close to the pole; long illumination periods and access to deep PSR interiors."
+      "description": "Rim of de Gerlache crater very close to the pole; long illumination periods and access to deep PSR interiors.",
+      "description_th": "ขอบหลุมอุกกาบาต de Gerlache ที่อยู่ใกล้ขั้วมาก ได้รับแสงอาทิตย์เป็นเวลานานและเข้าถึงภายในบริเวณเงามืดถาวรที่ลึกได้"
     },
     {
       "id": "slater-plain",
@@ -137,10 +155,12 @@
       "provider": "NASA Artemis III (HLS: SpaceX Starship)",
       "mission": "Artemis III",
       "status": "Candidate region (2024)",
+      "status_th": "พื้นที่ผู้สมัคร (2024)",
       "sunlight_pct": 62,
       "dte_pct": 40,
       "max_darkness_hours": 150,
-      "description": "Plains near Slater crater on the far-side-facing sector of the south pole; limited Earth visibility."
+      "description": "Plains near Slater crater on the far-side-facing sector of the south pole; limited Earth visibility.",
+      "description_th": "ที่ราบใกล้หลุมอุกกาบาต Slater ในส่วนของขั้วใต้ที่หันไปทางด้านไกล มองเห็นโลกได้จำกัด"
     },
     {
       "id": "shackleton-connecting-ridge",
@@ -151,10 +171,12 @@
       "provider": "NASA Artemis III (HLS: SpaceX Starship)",
       "mission": "Artemis III",
       "status": "Legacy candidate (2022) - not in 2024 list",
+      "status_th": "พื้นที่ผู้สมัครเดิม (2022) - ไม่อยู่ในรายชื่อปี 2024",
       "sunlight_pct": 85,
       "dte_pct": 50,
       "max_darkness_hours": 70,
-      "description": "Ridge connecting Shackleton and de Gerlache craters; among the best-illuminated terrain at the south pole."
+      "description": "Ridge connecting Shackleton and de Gerlache craters; among the best-illuminated terrain at the south pole.",
+      "description_th": "สันเขาที่เชื่อมหลุมอุกกาบาต Shackleton กับ de Gerlache เป็นหนึ่งในพื้นที่ที่ได้รับแสงอาทิตย์ดีที่สุดบนขั้วใต้"
     },
     {
       "id": "im-1-odysseus",
@@ -165,10 +187,12 @@
       "provider": "Intuitive Machines (Nova-C)",
       "mission": "IM-1 / CLPS TO2-IM",
       "status": "Landed 2024-02-22 - tipped on side, operated ~7 days",
+      "status_th": "ลงจอด 2024-02-22 - ล้มตะแคง ปฏิบัติงานได้ ~7 วัน",
       "sunlight_pct": 55,
       "dte_pct": 95,
       "max_darkness_hours": 330,
-      "description": "First US soft landing since Apollo 17 and first commercial lunar landing, near Malapert A crater."
+      "description": "First US soft landing since Apollo 17 and first commercial lunar landing, near Malapert A crater.",
+      "description_th": "การลงจอดแบบนุ่มนวลครั้งแรกของสหรัฐฯ นับตั้งแต่ Apollo 17 และเป็นการลงจอดบนดวงจันทร์เชิงพาณิชย์ครั้งแรก ใกล้หลุมอุกกาบาต Malapert A"
     },
     {
       "id": "im-2-athena",
@@ -179,10 +203,12 @@
       "provider": "Intuitive Machines (Nova-C)",
       "mission": "IM-2 / CLPS PRIME-1",
       "status": "Landed 2025-03-06 - tipped over, mission ended 2025-03-07",
+      "status_th": "ลงจอด 2025-03-06 - ล้มคว่ำ ภารกิจสิ้นสุด 2025-03-07",
       "sunlight_pct": 70,
       "dte_pct": 80,
       "max_darkness_hours": 110,
-      "description": "Carried NASA's PRIME-1 drill and mass spectrometer to the Mons Mouton plateau; landed on its side inside a small crater."
+      "description": "Carried NASA's PRIME-1 drill and mass spectrometer to the Mons Mouton plateau; landed on its side inside a small crater.",
+      "description_th": "นำสว่านเจาะ PRIME-1 และแมสสเปกโตรมิเตอร์ของ NASA ไปยังที่ราบสูง Mons Mouton แต่ลงจอดตะแคงอยู่ในหลุมอุกกาบาตขนาดเล็ก"
     },
     {
       "id": "blue-ghost-m1",
@@ -193,10 +219,12 @@
       "provider": "Firefly Aerospace (Blue Ghost)",
       "mission": "Blue Ghost Mission 1 / CLPS 19D",
       "status": "Landed 2025-03-02 - full mission success (~14 days surface ops)",
+      "status_th": "ลงจอด 2025-03-02 - ภารกิจสำเร็จสมบูรณ์ (ปฏิบัติงานบนพื้นผิว ~14 วัน)",
       "sunlight_pct": 50,
       "dte_pct": 100,
       "max_darkness_hours": 354,
-      "description": "First fully successful commercial lunar landing, near Mons Latreille in Mare Crisium; operated through local sunset."
+      "description": "First fully successful commercial lunar landing, near Mons Latreille in Mare Crisium; operated through local sunset.",
+      "description_th": "การลงจอดบนดวงจันทร์เชิงพาณิชย์ที่สำเร็จสมบูรณ์ครั้งแรก ใกล้ Mons Latreille ใน Mare Crisium และปฏิบัติงานได้จนถึงพระอาทิตย์ตกในพื้นที่"
     }
   ]
 }
