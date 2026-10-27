@@ -13,11 +13,14 @@ GET /api/health                  : liveness check used by the frontend status li
 GET /api/sites                   : all landing sites from frontend/sites_data.json
 GET /api/sites/{site_id}         : a single site
 GET /api/site-analysis/{site_id} : solar power + battery survival analysis
+GET /api/sites/{site_id}/sky     : time-based Sun/Earth unit ENU vectors (JPL DE421 + lunar libration)
 """
 
 from __future__ import annotations
 
 import json
+import logging
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Optional
@@ -27,6 +30,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+import ephemeris
 import physics
 
 # The frontend's JSON is the single source of truth for site data.
@@ -47,6 +51,16 @@ app.add_middleware(
     allow_methods=["GET"],
     allow_headers=["*"],
 )
+
+
+# Load the ephemeris kernels ONCE at startup. If they are missing the app still
+# starts (all other endpoints keep working) and /sky answers 503.
+try:
+    ephemeris.init()
+except ephemeris.EphemerisUnavailable as exc:
+    logging.getLogger("uvicorn.error").warning("Ephemeris disabled: %s", exc)
+
+MAX_SKY_STEPS = 4000
 
 
 # --- Data access -----------------------------------------------------------------
@@ -193,6 +207,52 @@ def site_analysis(
             "required_capacity_wh": round(required_wh, 1),
         },
         "profile": profile,
+    }
+
+
+@app.get("/api/sites/{site_id}/sky")
+def site_sky(
+    site_id: str,
+    start: str = Query(..., description="ISO-8601 UTC start, e.g. 2026-11-01T00:00:00Z"),
+    days: int = Query(30, ge=1, le=366),
+    step_hours: int = Query(1, ge=1, le=24),
+) -> dict:
+    """
+    Sun and Earth directions at the site vs UTC time, as unit ENU vectors
+    [east, north, up] (interpolate these, not the angles), plus alt/az (deg)
+    for display. Time of sample i = start + i * step_hours.
+    Model: DE421 + NAIF MOON_ME_DE421 (Mean Earth / Polar Axis, incl. libration);
+    centre directions only; no refraction. See ephemeris.py.
+    """
+    site = get_site_or_404(site_id)
+    try:
+        t0 = datetime.fromisoformat(start.replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(status_code=422, detail="start must be ISO-8601, e.g. 2026-11-01T00:00:00Z")
+    if t0.tzinfo is None:
+        t0 = t0.replace(tzinfo=timezone.utc)
+    if days * 24 // step_hours + 1 > MAX_SKY_STEPS:
+        raise HTTPException(status_code=400, detail=f"Too many steps (max {MAX_SKY_STEPS})")
+    try:
+        grid, sky = ephemeris.sky_over_period(site["lat"], site["lon"], t0, days, step_hours)
+    except ephemeris.EphemerisUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    def pack(b: dict) -> dict:
+        return {"enu": b["enu"].round(5).tolist(),
+                "alt": b["alt"].round(3).tolist(),
+                "az": b["az"].round(3).tolist()}
+
+    return {
+        "site": {k: site[k] for k in ("id", "lat", "lon")},
+        "frame": "Moon Mean Earth/Polar Axis (MOON_ME_DE421), sphere R=1737.4 km, ENU=[E,N,U]",
+        "start": grid[0].astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "step_hours": step_hours,
+        "n": len(grid),
+        "sun": pack(sky["sun"]),
+        "earth": pack(sky["earth"]),
     }
 
 
