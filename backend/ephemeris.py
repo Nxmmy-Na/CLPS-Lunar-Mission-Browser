@@ -33,9 +33,10 @@ Approximations / limits
 * Only the CENTRE direction of the Sun and Earth is returned (no disk size).
 * Valid only for 1900-2050 (limit of DE421 and the lunar PCK).
 * Site elevation = 0 (reference sphere). Local terrain is not modelled.
-* Horizons uses the older IAU_MOON frame; Skyfield's own test-suite notes it
-  differs from MOON_ME_DE421 by ~76 m on average and up to ~155 m (about
-  ≤ 1e-5 deg at Malapert 5 เวลา at the surface). Expect that much disagreement even when correct.
+* Checked against JPL Horizons at Malapert Massif (5 times, Nov 2026): Sun and
+  Earth directions agreed to <= ~1e-5 deg. An older note expected up to ~0.005 deg
+  of frame disagreement; that was NOT observed in these samples. Other sites,
+  dates and years have not been checked yet.
 
 Memory: kernels are loaded once (init()) and reused; DE421 is memory-mapped.
 """
