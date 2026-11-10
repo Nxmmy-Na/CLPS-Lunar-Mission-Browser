@@ -105,3 +105,4 @@ curl "http://localhost:8000/api/site-analysis/malapert-massif?panel_area_m2=4&ba
 - Coordinates for the Artemis III regions are **approximate region centres**. Each real region is about 15×15 km.
 - `sunlight_pct`, `dte_pct` and `max_darkness_hours` for the polar regions are **illustrative estimates**. Replace them with LOLA illumination and DTE data before using them for real analysis.
 - The power profile in the API uses a **flat horizon**. Near the poles, terrain dominates illumination, so use the `terrain_visibility` parameter to account for it.
+# Lunar2
