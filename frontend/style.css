@@ -224,3 +224,27 @@ html[lang="th"] .kpi-label { text-transform: none; letter-spacing: 0; }
 .lang-btn + .lang-btn { border-left: 1px solid var(--border); }
 .lang-btn:hover { color: var(--text); }
 .lang-btn.active { background: var(--accent); color: #05070d; }
+
+
+/* ---------- Sun & Earth sky panel ---------- */
+.sky { border-top: 1px solid var(--border); padding-top: 14px; margin-bottom: 18px; }
+.sky h3 { font-size: 14px; margin-bottom: 12px; }
+.sky input[type="datetime-local"], .sky select {
+  width: 100%; padding: 6px 8px; font: inherit; font-family: var(--mono);
+  color: var(--text); background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 6px; color-scheme: dark;
+}
+.sky-play { display: flex; gap: 8px; margin-bottom: 10px; }
+.sky-play .btn-ghost { margin-top: 0; width: auto; flex: 1; }
+.sky-play select { width: 100px; flex: none; }
+.sky-row {
+  display: grid; grid-template-columns: 14px 64px 1fr; align-items: center; gap: 6px;
+  padding: 6px 8px; margin-bottom: 4px; font-size: 12px;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+}
+.sky-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.sky-dot.sun { background: var(--sun); }
+.sky-dot.earth { background: var(--accent); }
+.sky .sky-status { font-size: 12px; min-height: 1em; margin: 6px 0 0; }
+.sky .sky-note { font-size: 11px; margin: 8px 0 0; }
+.sky .error { margin: 6px 0 0; }

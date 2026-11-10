@@ -73,7 +73,7 @@ const I18N = {
     "detail.sun": "☀ Sunlight",
     "detail.dte": "📡 Direct-to-Earth",
     "an.heading": "Power & survival analysis",
-    "an.sunoff": "Sun longitude offset",
+    "an.sunoff": "Sun longitude offset (manual)",
     "an.area": "Panel area",
     "an.eff": "Panel efficiency",
     "an.vis": "Terrain visibility",
@@ -96,6 +96,20 @@ const I18N = {
     "note.terrainFail": "Could not load Cesium Moon Terrain - showing textured globe.",
     "note.sitesFail": "Could not load sites_data.json - serve the frontend over HTTP (see README).",
     "dir.N": "N", "dir.S": "S", "dir.E": "E", "dir.W": "W",
+    "sky.heading": "Sun & Earth in the sky",
+    "sky.date": "Date & time (UTC)",
+    "sky.time": "Time in loaded window",
+    "sky.speed": "Playback speed",
+    "sky.play": "▶ Play",
+    "sky.pause": "⏸ Pause",
+    "sky.sun": "Sun",
+    "sky.earth": "Earth",
+    "sky.read": "alt {alt}° · az {az}°",
+    "sky.below": "below horizon",
+    "sky.loading": "Loading sky data…",
+    "sky.error": "Sky data unavailable: {msg}",
+    "sky.range": "Date must be between 1900 and 2050 (range of the ephemeris).",
+    "sky.note": "Directions are for the centre of the Sun/Earth above a FLAT horizon. Terrain shadowing is not modelled yet, so \"above horizon\" does not guarantee a clear view.",
   },
   th: {
     "title": "CLPS Lunar Mission Browser",
@@ -121,7 +135,7 @@ const I18N = {
     "detail.sun": "☀ แสงอาทิตย์",
     "detail.dte": "📡 สื่อสารตรงกับโลก",
     "an.heading": "วิเคราะห์พลังงานและการอยู่รอด",
-    "an.sunoff": "ระยะลองจิจูดของดวงอาทิตย์",
+    "an.sunoff": "ระยะลองจิจูดของดวงอาทิตย์ (กำหนดเอง)",
     "an.area": "พื้นที่แผงโซลาร์",
     "an.eff": "ประสิทธิภาพแผง",
     "an.vis": "การมองเห็นจากภูมิประเทศ",
@@ -144,6 +158,20 @@ const I18N = {
     "note.terrainFail": "โหลด Cesium Moon Terrain ไม่ได้ จึงแสดงลูกโลกพร้อมพื้นผิวแทน",
     "note.sitesFail": "โหลด sites_data.json ไม่ได้ ต้องเปิดหน้าเว็บผ่าน HTTP (ดู README)",
     "dir.N": "เหนือ", "dir.S": "ใต้", "dir.E": "ตะวันออก", "dir.W": "ตะวันตก",
+    "sky.heading": "ดวงอาทิตย์และโลกบนท้องฟ้า",
+    "sky.date": "วันที่และเวลา (UTC)",
+    "sky.time": "เวลาในช่วงที่โหลดไว้",
+    "sky.speed": "ความเร็วในการเล่น",
+    "sky.play": "▶ เล่น",
+    "sky.pause": "⏸ หยุด",
+    "sky.sun": "ดวงอาทิตย์",
+    "sky.earth": "โลก",
+    "sky.read": "มุมเงย {alt}° · ทิศ {az}°",
+    "sky.below": "ใต้ขอบฟ้า",
+    "sky.loading": "กำลังโหลดข้อมูลท้องฟ้า…",
+    "sky.error": "ไม่สามารถโหลดข้อมูลท้องฟ้า: {msg}",
+    "sky.range": "วันที่ต้องอยู่ระหว่างปี 1900 ถึง 2050 (ช่วงที่ ephemeris รองรับ)",
+    "sky.note": "ทิศทางคือจุดศูนย์กลางของดวงอาทิตย์/โลกเหนือขอบฟ้าที่ราบเรียบ ยังไม่คิดเงาของภูมิประเทศ จึงไม่ได้รับประกันว่ามองเห็นจริง",
   },
 };
 
@@ -345,6 +373,7 @@ function selectSite(site, { fly = true } = {}) {
   sidebar.setAttribute("aria-hidden", "false");
 
   renderSiteList();
+  onSkySiteChanged(site);
 
   if (fly) {
     viewer.camera.flyTo({
@@ -377,6 +406,7 @@ function closeSidebar() {
   const sidebar = $("sidebar");
   sidebar.classList.remove("open");
   sidebar.setAttribute("aria-hidden", "true");
+  clearSky();
   renderSiteList();
 }
 
@@ -566,6 +596,315 @@ function drawPowerChart(profile) {
 }
 
 // ---------------------------------------------------------------------
+// 5b. Sun & Earth in the local sky (real time) + 3D direction arrows
+//     Data: GET /api/sites/{id}/sky  -> unit ENU vectors per time step.
+//     We fetch ONE window per (site, start) and interpolate vectors locally,
+//     so scrubbing / playing never calls the API.
+// ---------------------------------------------------------------------
+const SKY = {
+  windowDays: 30,
+  stepHours: 1,
+  minYear: 1900,       // DE421 / lunar PCK range (same as backend)
+  maxYear: 2050,
+  defaultStartMs: Date.UTC(2026, 10, 1, 0, 0, 0),   // 2026-11-01 00:00 UTC
+  originHeightM: 500,  // same lift as the site pins
+};
+
+const sky = {
+  data: null,          // { siteId, startMs, stepH, n, sun: [[e,n,u]...], earth: [...] }
+  cache: new Map(),    // "siteId|startMs" -> data
+  token: 0,            // increments on every (re)load so stale responses are ignored
+  tMs: SKY.defaultStartMs,
+  playing: false,
+  lastFrame: 0,
+  statusKey: "",
+  errorKey: "", errorVars: {},
+  cur: { sun: null, earth: null },   // { enu:[e,n,u], alt, az } at the current time
+  origin: null,        // Cartesian3 of the selected site (arrow start)
+  enuMatrix: null,     // local East-North-Up -> world transform at `origin`
+};
+
+// --- pure helpers (no DOM / Cesium; unit-tested outside the browser) ---
+function skyIsoUtc(ms) {
+  return new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+/** "YYYY-MM-DDTHH:MM[:SS]" read as UTC -> ms (NaN if invalid). */
+function parseUtcInput(value) {
+  if (!value) return NaN;
+  return Date.parse(value.length === 16 ? `${value}:00Z` : `${value}Z`);
+}
+function inputValueUtc(ms) {
+  return new Date(ms).toISOString().slice(0, 16);
+}
+function formatUtc(ms) {
+  return `${new Date(ms).toISOString().slice(0, 16).replace("T", " ")} UTC`;
+}
+function yearOutOfRange(ms) {
+  const y = new Date(ms).getUTCFullYear();
+  return y < SKY.minYear || y > SKY.maxYear;
+}
+/**
+ * Interpolate unit vectors (NOT angles - azimuth wraps at 359 -> 0).
+ * list: [[e,n,u], ...]; f: fractional index. Returns { enu, alt, az } in degrees.
+ */
+function skyInterpolate(list, f) {
+  const last = list.length - 1;
+  const i0 = Math.max(0, Math.min(last, Math.floor(f)));
+  const i1 = Math.min(last, i0 + 1);
+  const w = Math.max(0, Math.min(1, f - i0));
+  const a = list[i0], b = list[i1];
+  let e = a[0] + (b[0] - a[0]) * w;
+  let n = a[1] + (b[1] - a[1]) * w;
+  let u = a[2] + (b[2] - a[2]) * w;
+  const len = Math.hypot(e, n, u) || 1;
+  e /= len; n /= len; u /= len;
+  const alt = Math.asin(Math.max(-1, Math.min(1, u))) * 180 / Math.PI;
+  const az = (Math.atan2(e, n) * 180 / Math.PI + 360) % 360;
+  return { enu: [e, n, u], alt, az };
+}
+// --- end pure helpers ---
+
+function setSkyStatus(key) { sky.statusKey = key; renderSkyUI(); }
+function setSkyError(key, vars = {}) { sky.errorKey = key; sky.errorVars = vars; renderSkyUI(); }
+function clearSkyError() { sky.errorKey = ""; sky.errorVars = {}; renderSkyUI(); }
+
+/** Re-draw all text of the sky panel from state (also called on language change). */
+function renderSkyUI() {
+  const row = (name) => {
+    const c = sky.cur[name];
+    if (!c) return "–";
+    let text = t("sky.read", { alt: c.alt.toFixed(1), az: c.az.toFixed(1) });
+    if (c.alt < 0) text += ` · ${t("sky.below")}`;
+    return text;
+  };
+  $("sky-sun-read").textContent = row("sun");
+  $("sky-earth-read").textContent = row("earth");
+  $("sky-now").textContent = sky.data ? formatUtc(sky.tMs) : "–";
+  $("sky-status").textContent = sky.statusKey ? t(sky.statusKey) : "";
+  $("sky-error").textContent = sky.errorKey ? t(sky.errorKey, sky.errorVars) : "";
+  $("sky-play").textContent = sky.playing ? t("sky.pause") : t("sky.play");
+}
+
+function enableSkyControls(on) {
+  $("sky-slider").disabled = !on;
+  $("sky-play").disabled = !on;
+}
+
+// ---- 3D arrows (created once, updated through CallbackProperty) ----
+function skyTip(name) {
+  const c = sky.cur[name];
+  if (!c || !sky.origin || !sky.enuMatrix) return undefined;
+  // Constant on-screen-ish length: proportional to camera distance, clamped.
+  const dist = Cesium.Cartesian3.distance(viewer.camera.positionWC, sky.origin);
+  const len = Math.min(Math.max(dist * 0.15, 2_000), 300_000);
+  const dir = Cesium.Matrix4.multiplyByPointAsVector(
+    sky.enuMatrix, new Cesium.Cartesian3(c.enu[0], c.enu[1], c.enu[2]), new Cesium.Cartesian3());
+  const offset = Cesium.Cartesian3.multiplyByScalar(dir, len, new Cesium.Cartesian3());
+  return Cesium.Cartesian3.add(sky.origin, offset, new Cesium.Cartesian3());
+}
+
+function initSkyArrows() {
+  const defs = [
+    { name: "sun", css: "#ffd166", labelKey: "sky.sun" },
+    { name: "earth", css: "#4da3ff", labelKey: "sky.earth" },
+  ];
+  for (const { name, css, labelKey } of defs) {
+    const base = Cesium.Color.fromCssColorString(css);
+    // Below the local (flat) horizon -> dimmed, not hidden.
+    const colour = new Cesium.CallbackProperty(() => {
+      const c = sky.cur[name];
+      return c && c.alt < 0 ? base.withAlpha(0.3) : base;
+    }, false);
+
+    viewer.entities.add({
+      id: `sky-${name}`,
+      show: false,
+      polyline: {
+        positions: new Cesium.CallbackProperty(() => {
+          const tip = skyTip(name);
+          return tip ? [sky.origin, tip] : undefined;
+        }, false),
+        width: 10,
+        // NONE = straight line. The default (geodesic) would bend the arrow
+        // along the sphere and sink it into the ground.
+        arcType: Cesium.ArcType.NONE,
+        material: new Cesium.PolylineArrowMaterialProperty(colour),
+        depthFailMaterial: new Cesium.PolylineArrowMaterialProperty(colour),
+      },
+    });
+
+    viewer.entities.add({
+      id: `sky-${name}-label`,
+      show: false,
+      position: new Cesium.CallbackProperty(() => skyTip(name), false),
+      label: {
+        text: new Cesium.CallbackProperty(() => t(labelKey), false),
+        font: "12px Inter, sans-serif",
+        fillColor: base,
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 3,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        pixelOffset: new Cesium.Cartesian2(0, -6),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      },
+    });
+  }
+}
+
+function showSkyArrows(on) {
+  for (const name of ["sun", "earth"]) {
+    const arrow = viewer.entities.getById(`sky-${name}`);
+    const label = viewer.entities.getById(`sky-${name}-label`);
+    if (arrow) arrow.show = on;
+    if (label) label.show = on;
+  }
+}
+
+// ---- time handling ----
+function windowEndMs(d) { return d.startMs + (d.n - 1) * d.stepH * 3_600_000; }
+
+/** Move to UTC time `ms` (clamped to the loaded window) and refresh everything. */
+function seekSky(ms) {
+  const d = sky.data;
+  if (!d) return;
+  ms = Math.max(d.startMs, Math.min(windowEndMs(d), ms));
+  sky.tMs = ms;
+  const f = (ms - d.startMs) / (d.stepH * 3_600_000);
+  sky.cur.sun = skyInterpolate(d.sun, f);
+  sky.cur.earth = skyInterpolate(d.earth, f);
+  $("sky-slider").value = String((ms - d.startMs) / 3_600_000);
+  const input = $("sky-datetime");
+  if (document.activeElement !== input) input.value = inputValueUtc(ms);
+  renderSkyUI();
+}
+
+async function loadSky(site, startMs) {
+  const mine = ++sky.token;
+  clearSkyError();
+  const key = `${site.id}|${startMs}`;
+  let data = sky.cache.get(key);
+  if (!data) {
+    setSkyStatus("sky.loading");
+    try {
+      const qs = new URLSearchParams({
+        start: skyIsoUtc(startMs),
+        days: String(SKY.windowDays),
+        step_hours: String(SKY.stepHours),
+      });
+      const res = await fetch(`${CONFIG.API_BASE}/api/sites/${encodeURIComponent(site.id)}/sky?${qs}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(typeof body.detail === "string" ? body.detail : `HTTP ${res.status}`);
+      }
+      const j = await res.json();
+      data = { siteId: site.id, startMs, stepH: j.step_hours, n: j.n, sun: j.sun.enu, earth: j.earth.enu };
+      sky.cache.set(key, data);
+    } catch (err) {
+      if (mine !== sky.token) return false;
+      sky.data = null;
+      sky.cur = { sun: null, earth: null };
+      showSkyArrows(false);
+      enableSkyControls(false);
+      setSkyStatus("");
+      setSkyError("sky.error", { msg: err.message });
+      return false;
+    }
+  }
+  // Ignore stale answers (another site / window was requested meanwhile).
+  if (mine !== sky.token || state.selected?.id !== site.id) return false;
+
+  sky.data = data;
+  setSkyStatus("");
+  const slider = $("sky-slider");
+  slider.min = "0";
+  slider.max = String((data.n - 1) * data.stepH);
+  enableSkyControls(true);
+  showSkyArrows(true);
+  return true;
+}
+
+function setSkyPlaying(on) {
+  sky.playing = on && !!sky.data;
+  if (sky.playing) {
+    sky.lastFrame = performance.now();
+    requestAnimationFrame(skyTick);
+  }
+  renderSkyUI();
+}
+
+function skyTick(now) {
+  if (!sky.playing || !sky.data) return;
+  const dt = Math.min((now - sky.lastFrame) / 1000, 0.25);
+  sky.lastFrame = now;
+  const hoursPerSecond = Number($("sky-speed").value) || 1;
+  let ms = sky.tMs + dt * hoursPerSecond * 3_600_000;
+  if (ms > windowEndMs(sky.data)) ms = sky.data.startMs;   // loop
+  seekSky(ms);
+  requestAnimationFrame(skyTick);
+}
+
+/** Called when a site is selected: reset, place arrow origin, load its window. */
+async function onSkySiteChanged(site) {
+  setSkyPlaying(false);
+  sky.token++;
+  sky.data = null;
+  sky.cur = { sun: null, earth: null };
+  showSkyArrows(false);
+  enableSkyControls(false);
+  sky.origin = Cesium.Cartesian3.fromDegrees(site.lon, site.lat, SKY.originHeightM, MOON);
+  sky.enuMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(sky.origin, MOON);
+
+  let ms = parseUtcInput($("sky-datetime").value);
+  if (Number.isNaN(ms)) ms = SKY.defaultStartMs;
+  if (yearOutOfRange(ms)) {
+    setSkyError("sky.range");
+    return;
+  }
+  const ok = await loadSky(site, Math.floor(ms / 3_600_000) * 3_600_000);
+  if (ok) seekSky(ms);
+}
+
+/** Called when the sidebar closes: stop everything and hide the arrows. */
+function clearSky() {
+  setSkyPlaying(false);
+  sky.token++;
+  sky.data = null;
+  sky.cur = { sun: null, earth: null };
+  showSkyArrows(false);
+  enableSkyControls(false);
+  setSkyStatus("");
+  clearSkyError();
+}
+
+// ---- controls ----
+$("sky-slider").addEventListener("input", () => {
+  if (!sky.data) return;
+  seekSky(sky.data.startMs + Number($("sky-slider").value) * 3_600_000);
+});
+
+$("sky-play").addEventListener("click", () => setSkyPlaying(!sky.playing));
+
+$("sky-datetime").addEventListener("change", async () => {
+  const site = state.selected;
+  const ms = parseUtcInput($("sky-datetime").value);
+  if (!site || Number.isNaN(ms)) return;
+  setSkyPlaying(false);
+  if (yearOutOfRange(ms)) {
+    setSkyError("sky.range");
+    return;
+  }
+  clearSkyError();
+  const d = sky.data;
+  const inWindow = d && d.siteId === site.id && ms >= d.startMs && ms <= windowEndMs(d);
+  if (!inWindow) {
+    const ok = await loadSky(site, Math.floor(ms / 3_600_000) * 3_600_000);
+    if (!ok) return;
+  }
+  seekSky(ms);
+});
+
+// ---------------------------------------------------------------------
 // 6. Language switching
 // ---------------------------------------------------------------------
 function setNote(key) {
@@ -593,6 +932,7 @@ function applyLanguage() {
   if (state.selected) renderSiteDetails(state.selected);
   else $("d-name").textContent = t("detail.select");
   if (state.lastResult && !$("results").hidden) renderResults(state.lastResult);
+  renderSkyUI();
   renderSiteList();
 }
 
@@ -625,6 +965,7 @@ document.querySelectorAll(".chip").forEach((chip) => {
 
 (async function init() {
   applyLanguage();
+  initSkyArrows();
   flyHome();
   addMoonImagery();
   loadMoonTerrain();

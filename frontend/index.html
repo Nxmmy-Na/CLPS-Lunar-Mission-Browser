@@ -11,7 +11,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" />
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
   <!-- ===== Top dashboard bar ===== -->
@@ -93,6 +93,42 @@
         </div>
       </div>
 
+      <!-- Sun & Earth in the local sky (real time) - data from /api/sites/{id}/sky -->
+      <section class="sky" id="sky-panel">
+        <h3 data-i18n="sky.heading">Sun &amp; Earth in the sky</h3>
+
+        <label class="ctl">
+          <span data-i18n="sky.date">Date &amp; time (UTC)</span>
+          <input type="datetime-local" id="sky-datetime" value="2026-11-01T00:00"
+                 min="1900-01-01T00:00" max="2050-12-31T23:59" />
+        </label>
+        <label class="ctl">
+          <span><span data-i18n="sky.time">Time in loaded window</span> <b class="mono" id="sky-now">–</b></span>
+          <input type="range" id="sky-slider" min="0" max="720" step="0.25" value="0" disabled />
+        </label>
+        <div class="sky-play">
+          <button class="btn-ghost" id="sky-play" disabled>▶ Play</button>
+          <select id="sky-speed" aria-label="Playback speed" data-i18n-aria="sky.speed">
+            <option value="1">1 h/s</option>
+            <option value="6" selected>6 h/s</option>
+            <option value="24">24 h/s</option>
+          </select>
+        </div>
+
+        <div class="sky-row">
+          <i class="sky-dot sun"></i><span data-i18n="sky.sun">Sun</span>
+          <span class="mono" id="sky-sun-read">–</span>
+        </div>
+        <div class="sky-row">
+          <i class="sky-dot earth"></i><span data-i18n="sky.earth">Earth</span>
+          <span class="mono" id="sky-earth-read">–</span>
+        </div>
+
+        <p class="muted sky-status" id="sky-status"></p>
+        <p class="error" id="sky-error" role="alert"></p>
+        <p class="muted sky-note" data-i18n="sky.note">Directions are for the centre of the Sun/Earth above a FLAT horizon. Terrain shadowing is not modelled yet, so "above horizon" does not guarantee a clear view.</p>
+      </section>
+
       <!-- Physics analysis controls -->
       <section class="analysis">
         <h3 data-i18n="an.heading">Power &amp; survival analysis</h3>
@@ -146,6 +182,6 @@
     </aside>
   </main>
 
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
